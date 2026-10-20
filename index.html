@@ -54,7 +54,7 @@ button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .handle{width:42px;height:5px;border-radius:999px;background:#aaa;margin:0 auto 10px}
 .field{margin-bottom:10px}
 .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
-.field input,.field textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 11px;background:#fff;font-size:16px}
+.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 11px;background:#fff;font-size:16px}
 .smallpad{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 .smallpad .num{height:42px;font-size:16px}
 .summary{font-size:12px;line-height:1.65}
@@ -160,6 +160,20 @@ button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
       </div>
 
       <div class="card">
+        <div class="section-title">ジャンパーの背番号</div>
+        <div class="actions">
+          <div class="field" style="margin:0">
+            <label>BLACK</label>
+            <select id="blackJumper"></select>
+          </div>
+          <div class="field" style="margin:0">
+            <label>相手</label>
+            <select id="oppJumper"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="section-title">元外野（複数選択OK）</div>
         <div style="font-size:12px;font-weight:800;margin-bottom:5px">BLACK</div>
         <div class="smallpad" id="blackOutPad"></div>
@@ -255,7 +269,7 @@ const meta={
 
 let state={
   tournament:{name:"",date:""},
-  current:{opponent:"",matchName:"",roster:[],blackOut:[],oppOut:[],logs:[]},
+  current:{opponent:"",matchName:"",roster:[],blackJumper:null,oppJumper:null,blackOut:[],oppOut:[],logs:[]},
   history:[]
 };
 let currentEvent=null,step=0,firstNum=null,detailIndex=null;
@@ -270,12 +284,20 @@ function load(){
     if(old){
       state.current={
         opponent:old.opponent||"",matchName:old.matchName||"",
-        roster:old.roster||[],blackOut:Array.isArray(old.blackOut)?old.blackOut:(old.blackOut?[old.blackOut]:[]),
+        roster:old.roster||[],
+        blackJumper:old.blackJumper||null,oppJumper:old.oppJumper||null,
+        blackOut:Array.isArray(old.blackOut)?old.blackOut:(old.blackOut?[old.blackOut]:[]),
         oppOut:Array.isArray(old.oppOut)?old.oppOut:(old.oppOut?[old.oppOut]:[]),
         logs:old.logs||[]
       };
     }
   }catch(e){}
+  if(state.current.blackJumper===undefined)state.current.blackJumper=null;
+  if(state.current.oppJumper===undefined)state.current.oppJumper=null;
+  state.history.forEach(m=>{
+    if(m.blackJumper===undefined)m.blackJumper=null;
+    if(m.oppJumper===undefined)m.oppJumper=null;
+  });
   if(!state.tournament.date)state.tournament.date=today();
 }
 function persist(){localStorage.setItem(KEY,JSON.stringify(state))}
@@ -315,7 +337,8 @@ function updateHeader(){
   document.getElementById("matchTitle").textContent=c.opponent?`vs ${c.opponent}`:"対戦チーム未設定";
   const outB=c.blackOut.length?c.blackOut.join("・"):"－",outO=c.oppOut.length?c.oppOut.join("・"):"－";
   const tn=state.tournament.name||"大会名未設定";
-  document.getElementById("matchSub").textContent=`${tn}｜${c.matchName||"試合名未設定"}｜元外野 B:${outB} / 相手:${outO}`;
+  const jumpB=c.blackJumper||"－",jumpO=c.oppJumper||"－";
+  document.getElementById("matchSub").textContent=`${tn}｜${c.matchName||"試合名未設定"}｜ジャンパー B:${jumpB} / 相手:${jumpO}｜元外野 B:${outB} / 相手:${outO}`;
   document.getElementById("recordCount").textContent=`${c.logs.length}件`
 }
 function renderLatest(){
@@ -324,12 +347,29 @@ function renderLatest(){
   box.innerHTML="";
   [...logs].slice(-3).reverse().forEach((x,idx)=>{const row=document.createElement("div");row.className="latest";row.innerHTML=`<span class="count">${logs.length-idx}</span><strong>${textOf(x)}</strong><span class="muted">${x.time.slice(0,5)}</span>`;box.appendChild(row)})
 }
+function fillJumperSelects(){
+  ["blackJumper","oppJumper"].forEach(id=>{
+    const s=document.getElementById(id);
+    if(s.options.length)return;
+    const blank=document.createElement("option");
+    blank.value="";blank.textContent="未設定";
+    s.appendChild(blank);
+    nums.forEach(n=>{
+      const o=document.createElement("option");
+      o.value=n;o.textContent=`${n}番`;
+      s.appendChild(o);
+    });
+  });
+}
 function renderSetup(){
   const c=state.current;
   document.getElementById("tournamentName").value=state.tournament.name||"";
   document.getElementById("tournamentDate").value=state.tournament.date||today();
   document.getElementById("opponent").value=c.opponent||"";
   document.getElementById("matchName").value=c.matchName||"";
+  fillJumperSelects();
+  document.getElementById("blackJumper").value=c.blackJumper||"";
+  document.getElementById("oppJumper").value=c.oppJumper||"";
   document.querySelectorAll("#rosterPad .num").forEach(b=>b.classList.toggle("selected",c.roster.includes(Number(b.dataset.n))));
   document.querySelectorAll("#blackOutPad .num").forEach(b=>b.classList.toggle("selected",c.blackOut.includes(Number(b.dataset.n))));
   document.querySelectorAll("#oppOutPad .num").forEach(b=>b.classList.toggle("selected",c.oppOut.includes(Number(b.dataset.n))))
@@ -360,13 +400,14 @@ function saveCurrentMatch(){
   if(!c.logs.length && !confirm("プレー記録が0件だけど、この試合を保存する？"))return;
   const saved={
     id:newId(),opponent:c.opponent.trim(),matchName:c.matchName.trim()||`試合${state.history.length+1}`,
-    roster:[...c.roster],blackOut:[...c.blackOut],oppOut:[...c.oppOut],
+    roster:[...c.roster],blackJumper:c.blackJumper||null,oppJumper:c.oppJumper||null,
+    blackOut:[...c.blackOut],oppOut:[...c.oppOut],
     logs:JSON.parse(JSON.stringify(c.logs)),
     savedAt:new Date().toISOString()
   };
   state.history.push(saved);
   const roster=[...c.roster];
-  state.current={opponent:"",matchName:"",roster,blackOut:[],oppOut:[],logs:[]};
+  state.current={opponent:"",matchName:"",roster,blackJumper:null,oppJumper:null,blackOut:[],oppOut:[],logs:[]};
   currentEvent=null;step=0;firstNum=null;
   document.querySelectorAll(".event").forEach(b=>b.classList.remove("active"));
   persist();renderAll();toast("試合を保存したよ");openHistory()
@@ -401,7 +442,7 @@ function renderHistory(){
     card.innerHTML=`
       <div class="history-head">
         <div><div class="history-title">${escapeHtml(m.matchName)}　vs ${escapeHtml(m.opponent)}</div>
-        <div class="history-meta">出場：${m.roster.length?m.roster.join("・"):"未設定"}｜元外野 B:${m.blackOut.length?m.blackOut.join("・"):"－"} / 相手:${m.oppOut.length?m.oppOut.join("・"):"－"}</div></div>
+        <div class="history-meta">出場：${m.roster.length?m.roster.join("・"):"未設定"}｜ジャンパー B:${m.blackJumper||"－"} / 相手:${m.oppJumper||"－"}｜元外野 B:${m.blackOut.length?m.blackOut.join("・"):"－"} / 相手:${m.oppOut.length?m.oppOut.join("・"):"－"}</div></div>
         <span class="count">${i+1}試合目</span>
       </div>
       <div class="history-stats">
@@ -423,7 +464,7 @@ function renderHistory(){
 function showDetail(i){
   detailIndex=i;const m=state.history[i];
   document.getElementById("detailTitle").textContent=`${m.matchName}　vs ${m.opponent}`;
-  document.getElementById("detailMeta").textContent=`出場：${m.roster.length?m.roster.join("・"):"未設定"}｜元外野 BLACK:${m.blackOut.length?m.blackOut.join("・"):"－"} / 相手:${m.oppOut.length?m.oppOut.join("・"):"－"}`;
+  document.getElementById("detailMeta").textContent=`出場：${m.roster.length?m.roster.join("・"):"未設定"}｜ジャンパー BLACK:${m.blackJumper||"－"} / 相手:${m.oppJumper||"－"}｜元外野 BLACK:${m.blackOut.length?m.blackOut.join("・"):"－"} / 相手:${m.oppOut.length?m.oppOut.join("・"):"－"}`;
   const box=document.getElementById("detailLog");box.innerHTML="";
   if(!m.logs.length)box.innerHTML='<div class="muted" style="text-align:center">記録なし</div>';
   else [...m.logs].reverse().forEach((x,idx)=>{const row=document.createElement("div");row.className="latest";row.innerHTML=`<span class="count">${m.logs.length-idx}</span><span><strong>${textOf(x)}</strong><br><span class="muted">${x.time}</span></span><span class="count">${meta[x.event].label}</span>`;box.appendChild(row)});
@@ -448,6 +489,7 @@ function playerAggregate(){
 }
 function matchShareText(m,index=null){
   let t=`【${m.matchName} vs ${m.opponent}】\n`;
+  t+=`ジャンパー BLACK:${m.blackJumper||"－"} / 相手:${m.oppJumper||"－"}\n`;
   t+=`BLACK アタック成功：${countEvent(m.logs,"black_attack")}本\n`;
   t+=`BLACK キャッチ成功：${countEvent(m.logs,"opp_caught")}本\n`;
   t+=`BLACK アシスト：${countEvent(m.logs,"assist")}本\n`;
@@ -489,8 +531,8 @@ async function shareText(title,text){
 }
 function shareMatch(i){shareText(`${state.history[i].matchName} vs ${state.history[i].opponent}`,matchShareText(state.history[i],i))}
 function downloadAllCsv(){
-  const rows=[["大会名","大会日","試合","対戦相手","No","時刻","種別","FROM","TO"]];
-  state.history.forEach(m=>m.logs.forEach((x,i)=>rows.push([state.tournament.name,state.tournament.date,m.matchName,m.opponent,i+1,x.time,meta[x.event].label,x.a,x.b])));
+  const rows=[["大会名","大会日","試合","対戦相手","BLACKジャンパー","相手ジャンパー","No","時刻","種別","FROM","TO"]];
+  state.history.forEach(m=>m.logs.forEach((x,i)=>rows.push([state.tournament.name,state.tournament.date,m.matchName,m.opponent,m.blackJumper||"",m.oppJumper||"",i+1,x.time,meta[x.event].label,x.a,x.b])));
   const csv="\ufeff"+rows.map(r=>r.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\n");
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");
   a.href=URL.createObjectURL(blob);a.download=`${state.tournament.name||"BLACK_OWL_大会"}_全試合.csv`;a.click();URL.revokeObjectURL(a.href)
@@ -499,7 +541,7 @@ function newTournament(){
   if(state.history.length && !confirm("保存済みの大会記録を消して、新しい大会を始める？"))return;
   const keepRoster=confirm("BLACKの出場選手は残す？");
   const roster=keepRoster?[...state.current.roster]:[];
-  state={tournament:{name:"",date:today()},current:{opponent:"",matchName:"",roster,blackOut:[],oppOut:[],logs:[]},history:[]};
+  state={tournament:{name:"",date:today()},current:{opponent:"",matchName:"",roster,blackJumper:null,oppJumper:null,blackOut:[],oppOut:[],logs:[]},history:[]};
   currentEvent=null;step=0;firstNum=null;persist();closeSheet("historySheet");renderAll();openSheet("settingsSheet")
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
@@ -517,6 +559,8 @@ document.getElementById("closeSettings").onclick=()=>{
   state.tournament.date=document.getElementById("tournamentDate").value||today();
   state.current.opponent=document.getElementById("opponent").value.trim();
   state.current.matchName=document.getElementById("matchName").value.trim();
+  state.current.blackJumper=document.getElementById("blackJumper").value?Number(document.getElementById("blackJumper").value):null;
+  state.current.oppJumper=document.getElementById("oppJumper").value?Number(document.getElementById("oppJumper").value):null;
   persist();updateHeader();closeSheet("settingsSheet");renderNumberPad()
 };
 ["tournamentName","tournamentDate","opponent","matchName"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{
@@ -526,7 +570,12 @@ document.getElementById("closeSettings").onclick=()=>{
   state.current.matchName=document.getElementById("matchName").value.trim();
   persist();updateHeader()
 }));
-document.getElementById("clearSetup").onclick=()=>{state.current.roster=[];state.current.blackOut=[];state.current.oppOut=[];persist();renderSetup();renderNumberPad();updateHeader()};
+["blackJumper","oppJumper"].forEach(id=>document.getElementById(id).addEventListener("change",()=>{
+  state.current.blackJumper=document.getElementById("blackJumper").value?Number(document.getElementById("blackJumper").value):null;
+  state.current.oppJumper=document.getElementById("oppJumper").value?Number(document.getElementById("oppJumper").value):null;
+  persist();updateHeader()
+}));
+document.getElementById("clearSetup").onclick=()=>{state.current.roster=[];state.current.blackJumper=null;state.current.oppJumper=null;state.current.blackOut=[];state.current.oppOut=[];persist();renderSetup();renderNumberPad();updateHeader()};
 document.getElementById("undo").onclick=undo;
 document.getElementById("finishMatch").onclick=saveCurrentMatch;
 document.getElementById("openHistory").onclick=openHistory;
