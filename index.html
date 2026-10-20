@@ -1,502 +1,546 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="theme-color" content="#111111" />
-<title>BLACK OWL 試合スコア入力</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="OWL Score">
+<title>BLACK OWL 試合スコア</title>
 <style>
-  :root{
-    --bg:#f3f3f3;
-    --card:#fff;
-    --ink:#111;
-    --muted:#6d6d6d;
-    --line:#d4d4d4;
-    --soft:#ededed;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0;background:var(--bg);color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
-    -webkit-tap-highlight-color:transparent;
-    overscroll-behavior-y:contain;
-  }
-  .app{max-width:760px;margin:0 auto;padding:10px 10px 112px}
-  h1{font-size:19px;text-align:center;margin:6px 0 12px}
-  h2{font-size:15px;margin:0}
-  .card{
-    background:var(--card);border:1px solid var(--line);border-radius:14px;
-    padding:12px;margin-bottom:10px;
-  }
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
-  input[type=text]{
-    width:100%;font-size:16px;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:white;
-  }
-  .sectionhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
-  .hint{font-size:11px;color:var(--muted);line-height:1.45}
-  .numbers{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
-  button{
-    font:inherit;touch-action:manipulation;-webkit-user-select:none;user-select:none;
-  }
-  .num{
-    min-height:50px;border:1px solid #b8b8b8;border-radius:12px;background:#fff;
-    font-size:18px;font-weight:800;color:#111;
-  }
-  .num.selected{background:#111;color:#fff;border-color:#111}
-  .event-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .event{
-    min-height:60px;border:1px solid #b8b8b8;border-radius:12px;background:#fff;
-    font-size:13px;font-weight:800;padding:8px;color:#111;
-  }
-  .event.active{background:#111;color:#fff;border-color:#111}
-  .event.full{grid-column:1/-1}
-  .stage-title{
-    font-size:13px;font-weight:700;margin:12px 0 7px;
-  }
-  .selection{
-    margin-top:10px;border:2px solid #111;border-radius:12px;padding:10px;text-align:center;
-    font-weight:800;font-size:16px;background:#fff;
-  }
-  .flash{
-    animation:flash .28s ease-out;
-  }
-  @keyframes flash{
-    0%{transform:scale(.98);background:#111;color:#fff}
-    100%{transform:scale(1);background:#fff;color:#111}
-  }
-  .log{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto}
-  .log-row{
-    display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:center;
-    border-bottom:1px solid var(--soft);padding:7px 0;font-size:14px;
-  }
-  .badge{
-    border:1px solid #aaa;border-radius:999px;padding:3px 7px;font-size:10px;white-space:nowrap;
-  }
-  .empty{text-align:center;color:#888;font-size:13px;padding:14px 0}
-  .action{
-    min-height:44px;border:1px solid #b8b8b8;border-radius:11px;background:#fff;
-    font-size:13px;font-weight:700;color:#111;padding:8px;
-  }
-  .action.primary{background:#111;color:white;border-color:#111}
-  .action.danger{color:#8c1f1f}
-  .sticky{
-    position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.97);
-    border-top:1px solid var(--line);
-    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
-    backdrop-filter:blur(8px);
-  }
-  .sticky-inner{
-    max-width:760px;margin:auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;
-  }
-  .summary{font-size:12px;line-height:1.6}
-  .mini-list{display:flex;flex-wrap:wrap;gap:6px}
-  .mini{border:1px solid #bbb;border-radius:999px;padding:5px 8px;font-size:12px}
-  .hidden{display:none!important}
-  .toast{
-    position:fixed;left:50%;bottom:96px;transform:translateX(-50%);
-    background:#111;color:#fff;border-radius:999px;padding:9px 14px;font-size:13px;font-weight:700;
-    opacity:0;pointer-events:none;transition:opacity .15s ease;
-    z-index:10;
-  }
-  .toast.show{opacity:1}
-  @media(max-width:420px){
-    .numbers{gap:6px}
-    .num{min-height:48px;font-size:17px}
-    .event{font-size:12px}
-  }
+:root{
+  --bg:#f3f3f3;--card:#fff;--ink:#111;--muted:#707070;--line:#d4d4d4;--soft:#ececec;--danger:#8a1f1f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif}
+body{-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+button,input,textarea{font:inherit}
+button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.app{max-width:520px;margin:0 auto;min-height:100dvh;padding:8px 10px calc(90px + env(safe-area-inset-bottom))}
+.top{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+.matchbox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 11px;min-height:54px}
+.matchtitle{font-weight:850;font-size:16px;line-height:1.2}
+.sub{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.35}
+.iconbtn{width:52px;height:52px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:20px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px;margin-bottom:8px}
+.section-title{font-weight:850;font-size:13px;margin:0 0 7px}
+.events{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.event{min-height:51px;border:1px solid #bdbdbd;border-radius:11px;background:#fff;color:#111;font-size:12px;font-weight:850;line-height:1.25;padding:6px}
+.event.active{background:#111;color:#fff;border-color:#111}
+.event.full{grid-column:1/-1;min-height:43px}
+.stage{border:2px solid #111;border-radius:12px;padding:9px 10px;margin-bottom:8px;text-align:center;background:#fff}
+.stage .big{font-size:15px;font-weight:900;line-height:1.25}
+.stage .small{font-size:11px;color:var(--muted);margin-top:3px}
+.pad{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.num{height:48px;border:1px solid #b8b8b8;border-radius:11px;background:#fff;color:#111;font-size:18px;font-weight:900}
+.num:active{transform:scale(.96)}
+.num.selected{background:#111;color:#fff;border-color:#111}
+.num.disabled{opacity:.22}
+.latest{display:grid;grid-template-columns:auto 1fr auto;gap:7px;align-items:center;border-top:1px solid var(--soft);padding:6px 0;font-size:12px}
+.latest:first-child{border-top:0}
+.count{font-size:10px;border:1px solid #aaa;border-radius:999px;padding:2px 6px;white-space:nowrap}
+.muted{color:var(--muted)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.btn{min-height:44px;border:1px solid #b8b8b8;border-radius:11px;background:#fff;color:#111;font-size:13px;font-weight:800;padding:7px}
+.btn.primary{background:#111;color:#fff;border-color:#111}
+.btn.danger{color:var(--danger)}
+.fixed{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.97);backdrop-filter:blur(9px);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));z-index:5}
+.fixed-inner{max-width:520px;margin:auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20;display:none;align-items:flex-end}
+.sheet.show{display:flex}
+.panel{width:100%;max-height:90dvh;overflow:auto;background:#f6f6f6;border-radius:18px 18px 0 0;padding:10px 10px calc(20px + env(safe-area-inset-bottom))}
+.panel-inner{max-width:520px;margin:auto}
+.handle{width:42px;height:5px;border-radius:999px;background:#aaa;margin:0 auto 10px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
+.field input,.field textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 11px;background:#fff;font-size:16px}
+.smallpad{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.smallpad .num{height:42px;font-size:16px}
+.summary{font-size:12px;line-height:1.65}
+.log{max-height:260px;overflow:auto}
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#111;color:#fff;border-radius:999px;padding:8px 13px;font-size:12px;font-weight:800;opacity:0;pointer-events:none;transition:opacity .12s;z-index:30}
+.toast.show{opacity:1}
+.flash{animation:flash .26s ease-out}
+@keyframes flash{0%{background:#111;color:#fff;transform:scale(.98)}100%{background:#fff;color:#111;transform:scale(1)}}
+.history-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px;margin-bottom:8px}
+.history-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.history-title{font-weight:850;font-size:14px}
+.history-meta{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.45}
+.history-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.stat{border:1px solid var(--line);border-radius:9px;padding:7px 5px;text-align:center}
+.stat strong{display:block;font-size:17px}
+.stat span{font-size:10px;color:var(--muted)}
+.history-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
+.history-actions .btn{min-height:38px;font-size:12px}
+.tournament-title{font-size:17px;font-weight:900}
+.share-preview{white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:12px;line-height:1.55;max-height:300px;overflow:auto}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.kpi .stat{background:#fff}
+.totals-table{width:100%;border-collapse:collapse;font-size:12px}
+.totals-table th,.totals-table td{border:1px solid var(--line);padding:7px 5px;text-align:center}
+.totals-table th{background:#f5f5f5;font-weight:850}
+.totals-table td:first-child{font-weight:900}
+@media(max-height:700px){.event{min-height:46px}.num{height:43px}.card{padding:8px}}
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>試合スコア入力</h1>
-
-  <div class="card">
-    <div class="grid2">
-      <div>
-        <label>対戦チーム</label>
-        <input id="opponent" type="text" placeholder="例：WAKABA" />
-      </div>
-      <div>
-        <label>試合名</label>
-        <input id="matchName" type="text" placeholder="例：予選①" />
-      </div>
+  <div class="top">
+    <div class="matchbox">
+      <div class="matchtitle" id="matchTitle">対戦チーム未設定</div>
+      <div class="sub" id="matchSub">⚙︎ から大会・試合情報を設定</div>
     </div>
+    <button class="iconbtn" id="openSettings" aria-label="設定">⚙︎</button>
   </div>
 
   <div class="card">
-    <div class="sectionhead">
-      <h2>出場選手（BLACK）</h2>
-      <button class="action" id="clearRoster">解除</button>
-    </div>
-    <div class="numbers" id="rosterButtons"></div>
-  </div>
-
-  <div class="card">
-    <h2 style="margin-bottom:10px">元外野</h2>
-    <div class="grid2">
-      <div>
-        <div class="hint" style="margin-bottom:6px">BLACK</div>
-        <div class="numbers" id="blackOutButtons"></div>
-      </div>
-      <div>
-        <div class="hint" style="margin-bottom:6px">相手</div>
-        <div class="numbers" id="oppOutButtons"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="sectionhead">
-      <h2>プレーを記録</h2>
-      <span class="badge" id="countBadge">0件</span>
-    </div>
-
-    <div class="event-grid">
+    <div class="section-title">① プレーを選ぶ</div>
+    <div class="events">
       <button class="event" data-event="black_attack">BLACK<br>アタック成功</button>
       <button class="event" data-event="opp_attack">相手<br>アタック成功</button>
       <button class="event" data-event="black_caught">BLACKアタック<br>相手キャッチ成功</button>
       <button class="event" data-event="opp_caught">相手アタック<br>BLACKキャッチ成功</button>
-      <button class="event full" data-event="assist">BLACK アシスト → アタック成功</button>
+      <button class="event full" data-event="assist">BLACK　アシスト → アタック成功</button>
     </div>
+  </div>
 
-    <div id="entryPanel" class="hidden">
-      <div class="stage-title" id="fromLabel">① 背番号を選択</div>
-      <div class="numbers" id="fromButtons"></div>
+  <div class="card">
+    <div class="stage" id="stageBox">
+      <div class="big" id="stageBig">プレーを選んでね</div>
+      <div class="small" id="stageSmall">そのあと背番号を2回タップすると自動記録</div>
+    </div>
+    <div class="pad" id="numberPad"></div>
+  </div>
 
-      <div class="stage-title" id="toLabel">② 背番号を選択</div>
-      <div class="numbers" id="toButtons"></div>
+  <div class="card">
+    <div class="section-title" style="display:flex;justify-content:space-between">
+      <span>直近の記録</span><span class="count" id="recordCount">0件</span>
+    </div>
+    <div id="latestBox"><div class="muted" style="text-align:center;font-size:12px;padding:7px">まだ記録なし</div></div>
+  </div>
+</div>
 
-      <div class="selection" id="selectionStatus">
-        ①の背番号を選んでね
+<div class="fixed">
+  <div class="fixed-inner">
+    <button class="btn danger" id="undo">↶ 1件戻す</button>
+    <button class="btn" id="openHistory">試合履歴</button>
+    <button class="btn primary" id="finishMatch">試合終了・保存</button>
+  </div>
+</div>
+
+<div class="sheet" id="settingsSheet">
+  <div class="panel">
+    <div class="panel-inner">
+      <div class="handle"></div>
+      <div class="card">
+        <div class="section-title">大会・試合設定</div>
+        <div class="field">
+          <label>大会名</label>
+          <input id="tournamentName" type="text" placeholder="例：第○回 ○○大会">
+        </div>
+        <div class="field">
+          <label>大会日</label>
+          <input id="tournamentDate" type="date">
+        </div>
+        <div class="field">
+          <label>対戦チーム</label>
+          <input id="opponent" type="text" placeholder="例：WAKABA">
+        </div>
+        <div class="field">
+          <label>試合名</label>
+          <input id="matchName" type="text" placeholder="例：予選① / 決勝T 1回戦">
+        </div>
       </div>
-      <div class="hint" style="margin-top:7px;text-align:center">
-        ②の背番号を押した瞬間に自動で記録されます
+
+      <div class="card">
+        <div class="section-title">出場選手（BLACK）</div>
+        <div class="smallpad" id="rosterPad"></div>
+        <div class="sub">選択した番号だけ、BLACK側の入力時に有効になります。</div>
       </div>
-    </div>
-  </div>
 
-  <div class="card">
-    <div class="sectionhead">
-      <h2>記録ログ</h2>
-      <button class="action danger" id="undoTop">1件戻す</button>
-    </div>
-    <div class="log" id="log"></div>
-  </div>
+      <div class="card">
+        <div class="section-title">元外野（複数選択OK）</div>
+        <div style="font-size:12px;font-weight:800;margin-bottom:5px">BLACK</div>
+        <div class="smallpad" id="blackOutPad"></div>
+        <div style="font-size:12px;font-weight:800;margin:10px 0 5px">相手</div>
+        <div class="smallpad" id="oppOutPad"></div>
+      </div>
 
-  <div class="card">
-    <h2 style="margin-bottom:8px">BLACK 集計</h2>
-    <div class="summary" id="summary">まだ記録がありません。</div>
-  </div>
-
-  <div class="card">
-    <div class="grid2">
-      <button class="action" id="copySummary">記録をコピー</button>
-      <button class="action" id="downloadCsv">CSV保存</button>
-    </div>
-    <div class="hint" style="margin-top:8px">
-      記録はこのブラウザ内に自動保存。ホーム画面に追加して使うと、かなりアプリっぽく使えます。
+      <div class="actions">
+        <button class="btn" id="clearSetup">選択をクリア</button>
+        <button class="btn primary" id="closeSettings">設定完了</button>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast">記録したよ</div>
+<div class="sheet" id="historySheet">
+  <div class="panel">
+    <div class="panel-inner">
+      <div class="handle"></div>
 
-<div class="sticky">
-  <div class="sticky-inner">
-    <button class="action danger" id="undo">1件戻す</button>
-    <button class="action" id="scrollTop">上へ</button>
-    <button class="action primary" id="newMatch">新しい試合</button>
+      <div class="card">
+        <div class="tournament-title" id="historyTournament">大会名未設定</div>
+        <div class="sub" id="historyDate"></div>
+        <div class="kpi" style="margin-top:9px">
+          <div class="stat"><strong id="savedMatches">0</strong><span>保存試合</span></div>
+          <div class="stat"><strong id="totalAttack">0</strong><span>アタック成功</span></div>
+          <div class="stat"><strong id="totalCatch">0</strong><span>キャッチ成功</span></div>
+        </div>
+      </div>
+
+      <div id="historyList"></div>
+
+      <div class="card">
+        <div class="section-title">大会個人集計（背番号別）</div>
+        <div id="playerTotals"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">大会終了後の共有</div>
+        <div class="actions">
+          <button class="btn primary" id="shareTournament">みんなに共有</button>
+          <button class="btn" id="copyTournament">共有文をコピー</button>
+        </div>
+        <div class="actions" style="margin-top:7px">
+          <button class="btn" id="downloadAllCsv">全試合CSV</button>
+          <button class="btn" id="newTournament">新しい大会</button>
+        </div>
+      </div>
+
+      <button class="btn" id="closeHistory" style="width:100%">閉じる</button>
+    </div>
   </div>
 </div>
+
+<div class="sheet" id="detailSheet">
+  <div class="panel">
+    <div class="panel-inner">
+      <div class="handle"></div>
+      <div class="card">
+        <div class="history-title" id="detailTitle"></div>
+        <div class="history-meta" id="detailMeta"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">記録</div>
+        <div class="log" id="detailLog"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">BLACK 集計</div>
+        <div class="summary" id="detailSummary"></div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="shareOne">この試合を共有</button>
+        <button class="btn primary" id="closeDetail">閉じる</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">保存したよ</div>
 
 <script>
-const KEY = "blackowl_score_fast_v2";
-const nums = Array.from({length:20},(_,i)=>i+1);
+const KEY="blackowl_score_archive_v3";
+const OLDKEY="blackowl_score_best_v1";
+const nums=Array.from({length:20},(_,i)=>i+1);
 
-const meta = {
-  black_attack:{
-    label:"BLACK アタック成功",
-    fromLabel:"① アタックしたBLACKの背番号",
-    toLabel:"② 当たった相手の背番号",
-    fromTeam:"BLACK",toTeam:"相手"
-  },
-  opp_attack:{
-    label:"相手 アタック成功",
-    fromLabel:"① アタックした相手の背番号",
-    toLabel:"② 当たったBLACKの背番号",
-    fromTeam:"相手",toTeam:"BLACK"
-  },
-  black_caught:{
-    label:"相手 キャッチ成功",
-    fromLabel:"① アタックしたBLACKの背番号",
-    toLabel:"② キャッチした相手の背番号",
-    fromTeam:"BLACK",toTeam:"相手"
-  },
-  opp_caught:{
-    label:"BLACK キャッチ成功",
-    fromLabel:"① アタックした相手の背番号",
-    toLabel:"② キャッチしたBLACKの背番号",
-    fromTeam:"相手",toTeam:"BLACK"
-  },
-  assist:{
-    label:"BLACK アシスト",
-    fromLabel:"① アシストしたBLACKの背番号",
-    toLabel:"② アタック成功したBLACKの背番号",
-    fromTeam:"BLACK",toTeam:"BLACK"
-  }
+const meta={
+  black_attack:{label:"BLACK アタック成功",firstTeam:"BLACK",secondTeam:"相手",firstPrompt:"アタックした BLACK の背番号",secondPrompt:"当たった 相手 の背番号",text:(a,b)=>`BLACK ${a} → 相手 ${b}（アタック成功）`},
+  opp_attack:{label:"相手 アタック成功",firstTeam:"相手",secondTeam:"BLACK",firstPrompt:"アタックした 相手 の背番号",secondPrompt:"当たった BLACK の背番号",text:(a,b)=>`相手 ${a} → BLACK ${b}（アタック成功）`},
+  black_caught:{label:"相手 キャッチ成功",firstTeam:"BLACK",secondTeam:"相手",firstPrompt:"アタックした BLACK の背番号",secondPrompt:"キャッチした 相手 の背番号",text:(a,b)=>`BLACK ${a} → 相手 ${b}（キャッチ成功）`},
+  opp_caught:{label:"BLACK キャッチ成功",firstTeam:"相手",secondTeam:"BLACK",firstPrompt:"アタックした 相手 の背番号",secondPrompt:"キャッチした BLACK の背番号",text:(a,b)=>`相手 ${a} → BLACK ${b}（キャッチ成功）`},
+  assist:{label:"BLACK アシスト",firstTeam:"BLACK",secondTeam:"BLACK",firstPrompt:"アシストした BLACK の背番号",secondPrompt:"アタック成功した BLACK の背番号",text:(a,b)=>`BLACK ${a}（アシスト）→ ${b}（アタック成功）`}
 };
 
 let state={
-  opponent:"",
-  matchName:"",
-  roster:[],
-  blackOut:null,
-  oppOut:null,
-  logs:[]
+  tournament:{name:"",date:""},
+  current:{opponent:"",matchName:"",roster:[],blackOut:[],oppOut:[],logs:[]},
+  history:[]
 };
+let currentEvent=null,step=0,firstNum=null,detailIndex=null;
 
-let currentEvent=null;
-let fromNum=null;
-
+function today(){return new Date().toISOString().slice(0,10)}
+function newId(){return `${Date.now()}_${Math.random().toString(16).slice(2)}`}
 function load(){
   try{
-    const x=JSON.parse(localStorage.getItem(KEY));
-    if(x) state={...state,...x};
+    const saved=JSON.parse(localStorage.getItem(KEY));
+    if(saved){state={...state,...saved};return}
+    const old=JSON.parse(localStorage.getItem(OLDKEY));
+    if(old){
+      state.current={
+        opponent:old.opponent||"",matchName:old.matchName||"",
+        roster:old.roster||[],blackOut:Array.isArray(old.blackOut)?old.blackOut:(old.blackOut?[old.blackOut]:[]),
+        oppOut:Array.isArray(old.oppOut)?old.oppOut:(old.oppOut?[old.oppOut]:[]),
+        logs:old.logs||[]
+      };
+    }
   }catch(e){}
+  if(!state.tournament.date)state.tournament.date=today();
 }
-function persist(){
-  state.opponent=document.getElementById("opponent").value;
-  state.matchName=document.getElementById("matchName").value;
-  localStorage.setItem(KEY,JSON.stringify(state));
-}
-function vibrate(){
-  try{ if(navigator.vibrate) navigator.vibrate(25); }catch(e){}
-}
-function toast(text){
-  const t=document.getElementById("toast");
-  t.textContent=text;
-  t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"),700);
-}
-function buildNumbers(id,mode){
-  const box=document.getElementById(id);
-  box.innerHTML="";
-  nums.forEach(n=>{
-    const b=document.createElement("button");
-    b.className="num";
-    b.textContent=n;
-    b.dataset.n=n;
-    b.onclick=()=>numberTap(mode,n);
-    box.appendChild(b);
-  });
-}
-function numberTap(mode,n){
-  if(mode==="roster"){
-    const i=state.roster.indexOf(n);
-    if(i>=0) state.roster.splice(i,1); else state.roster.push(n);
-    state.roster.sort((a,b)=>a-b);
-    persist(); renderStatic(); vibrate(); return;
-  }
-  if(mode==="blackOut"){
-    state.blackOut=state.blackOut===n?null:n;
-    persist();renderStatic();vibrate();return;
-  }
-  if(mode==="oppOut"){
-    state.oppOut=state.oppOut===n?null:n;
-    persist();renderStatic();vibrate();return;
-  }
-  if(mode==="from"){
-    fromNum=n;
-    renderEntry();
-    vibrate();
-    return;
-  }
-  if(mode==="to"){
-    if(!currentEvent){
-      toast("先にプレーを選んでね");
-      return;
-    }
-    if(!fromNum){
-      toast("先に①の背番号を選んでね");
-      return;
-    }
-    autoSave(n);
-  }
-}
-function renderStatic(){
-  document.querySelectorAll("#rosterButtons .num").forEach(b=>{
-    b.classList.toggle("selected",state.roster.includes(Number(b.dataset.n)));
-  });
-  document.querySelectorAll("#blackOutButtons .num").forEach(b=>{
-    b.classList.toggle("selected",state.blackOut===Number(b.dataset.n));
-  });
-  document.querySelectorAll("#oppOutButtons .num").forEach(b=>{
-    b.classList.toggle("selected",state.oppOut===Number(b.dataset.n));
-  });
+function persist(){localStorage.setItem(KEY,JSON.stringify(state))}
+function vibrate(){try{if(navigator.vibrate)navigator.vibrate(22)}catch(e){}}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),700)}
+function toggleIn(arr,n){const i=arr.indexOf(n);if(i>=0)arr.splice(i,1);else arr.push(n);arr.sort((a,b)=>a-b)}
+function buildPad(id,handler){const box=document.getElementById(id);box.innerHTML="";nums.forEach(n=>{const b=document.createElement("button");b.className="num";b.textContent=n;b.dataset.n=n;b.onclick=()=>handler(n);box.appendChild(b)})}
+function currentTeam(){if(!currentEvent)return null;return step===0?meta[currentEvent].firstTeam:meta[currentEvent].secondTeam}
+function isAllowed(n){const team=currentTeam();if(team!=="BLACK")return true;if(!state.current.roster.length)return true;return state.current.roster.includes(n)}
+function renderNumberPad(){
+  const box=document.getElementById("numberPad");box.innerHTML="";
+  nums.forEach(n=>{const b=document.createElement("button");b.className="num";b.textContent=n;if(!isAllowed(n)){b.classList.add("disabled");b.disabled=true}b.onclick=()=>numberTap(n);box.appendChild(b)})
 }
 function chooseEvent(ev){
-  currentEvent=ev;
-  fromNum=null;
+  currentEvent=ev;step=0;firstNum=null;
   document.querySelectorAll(".event").forEach(b=>b.classList.toggle("active",b.dataset.event===ev));
-  const m=meta[ev];
-  document.getElementById("fromLabel").textContent=m.fromLabel;
-  document.getElementById("toLabel").textContent=m.toLabel;
-  document.getElementById("entryPanel").classList.remove("hidden");
-  renderEntry();
-  vibrate();
+  updateStage();renderNumberPad();vibrate()
 }
-function renderEntry(){
-  document.querySelectorAll("#fromButtons .num").forEach(b=>{
-    b.classList.toggle("selected",fromNum===Number(b.dataset.n));
-  });
-  document.querySelectorAll("#toButtons .num").forEach(b=>b.classList.remove("selected"));
-  const st=document.getElementById("selectionStatus");
-  if(!currentEvent){
-    st.textContent="プレーを選んでね";
-  }else if(!fromNum){
-    st.textContent="①の背番号を選んでね";
-  }else{
-    const m=meta[currentEvent];
-    st.textContent=`${m.fromTeam} ${fromNum} → ②をタップ`;
-  }
+function updateStage(){
+  const big=document.getElementById("stageBig"),small=document.getElementById("stageSmall");
+  if(!currentEvent){big.textContent="プレーを選んでね";small.textContent="そのあと背番号を2回タップすると自動記録";return}
+  const m=meta[currentEvent];
+  if(step===0){big.textContent=m.firstPrompt;small.textContent="① 1人目をタップ"}
+  else{big.textContent=m.secondPrompt;small.textContent=`① ${firstNum}番を選択済み → ② 2人目をタップ`}
 }
-function autoSave(toNum){
-  const x={
-    event:currentEvent,
-    from:fromNum,
-    to:toNum,
-    t:new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",second:"2-digit"})
+function numberTap(n){
+  if(!currentEvent){toast("先にプレーを選んでね");return}
+  if(step===0){firstNum=n;step=1;updateStage();renderNumberPad();vibrate();return}
+  const x={event:currentEvent,a:firstNum,b:n,time:new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",second:"2-digit"})};
+  state.current.logs.push(x);persist();
+  const stage=document.getElementById("stageBox");stage.classList.remove("flash");void stage.offsetWidth;stage.classList.add("flash");
+  toast("記録したよ");vibrate();step=0;firstNum=null;updateStage();renderNumberPad();renderLatest();updateHeader()
+}
+function textOf(x){return meta[x.event].text(x.a,x.b)}
+function updateHeader(){
+  const c=state.current;
+  document.getElementById("matchTitle").textContent=c.opponent?`vs ${c.opponent}`:"対戦チーム未設定";
+  const outB=c.blackOut.length?c.blackOut.join("・"):"－",outO=c.oppOut.length?c.oppOut.join("・"):"－";
+  const tn=state.tournament.name||"大会名未設定";
+  document.getElementById("matchSub").textContent=`${tn}｜${c.matchName||"試合名未設定"}｜元外野 B:${outB} / 相手:${outO}`;
+  document.getElementById("recordCount").textContent=`${c.logs.length}件`
+}
+function renderLatest(){
+  const box=document.getElementById("latestBox"),logs=state.current.logs;
+  if(!logs.length){box.innerHTML='<div class="muted" style="text-align:center;font-size:12px;padding:7px">まだ記録なし</div>';return}
+  box.innerHTML="";
+  [...logs].slice(-3).reverse().forEach((x,idx)=>{const row=document.createElement("div");row.className="latest";row.innerHTML=`<span class="count">${logs.length-idx}</span><strong>${textOf(x)}</strong><span class="muted">${x.time.slice(0,5)}</span>`;box.appendChild(row)})
+}
+function renderSetup(){
+  const c=state.current;
+  document.getElementById("tournamentName").value=state.tournament.name||"";
+  document.getElementById("tournamentDate").value=state.tournament.date||today();
+  document.getElementById("opponent").value=c.opponent||"";
+  document.getElementById("matchName").value=c.matchName||"";
+  document.querySelectorAll("#rosterPad .num").forEach(b=>b.classList.toggle("selected",c.roster.includes(Number(b.dataset.n))));
+  document.querySelectorAll("#blackOutPad .num").forEach(b=>b.classList.toggle("selected",c.blackOut.includes(Number(b.dataset.n))));
+  document.querySelectorAll("#oppOutPad .num").forEach(b=>b.classList.toggle("selected",c.oppOut.includes(Number(b.dataset.n))))
+}
+function openSheet(id){document.getElementById(id).classList.add("show")}
+function closeSheet(id){document.getElementById(id).classList.remove("show")}
+function undo(){
+  if(!state.current.logs.length){toast("戻す記録がないよ");return}
+  state.current.logs.pop();persist();renderLatest();updateHeader();toast("1件戻したよ")
+}
+function counts(logs,event,field){
+  const map={};logs.filter(x=>x.event===event).forEach(x=>{const n=x[field];map[n]=(map[n]||0)+1});
+  const e=Object.entries(map).sort((a,b)=>Number(a[0])-Number(b[0]));
+  return e.length?e.map(([n,c])=>`${n}番×${c}`).join("、"):"なし"
+}
+function countEvent(logs,event){return logs.filter(x=>x.event===event).length}
+function matchSummaryHtml(m){
+  return `
+    <div><strong>アタック成功：</strong>${counts(m.logs,"black_attack","a")}</div>
+    <div><strong>被弾：</strong>${counts(m.logs,"opp_attack","b")}</div>
+    <div><strong>キャッチ成功：</strong>${counts(m.logs,"opp_caught","b")}</div>
+    <div><strong>相手にキャッチされたアタック：</strong>${counts(m.logs,"black_caught","a")}</div>
+    <div><strong>アシスト：</strong>${counts(m.logs,"assist","a")}</div>`
+}
+function saveCurrentMatch(){
+  const c=state.current;
+  if(!c.opponent.trim()){toast("対戦チームを入れてね");openSheet("settingsSheet");return}
+  if(!c.logs.length && !confirm("プレー記録が0件だけど、この試合を保存する？"))return;
+  const saved={
+    id:newId(),opponent:c.opponent.trim(),matchName:c.matchName.trim()||`試合${state.history.length+1}`,
+    roster:[...c.roster],blackOut:[...c.blackOut],oppOut:[...c.oppOut],
+    logs:JSON.parse(JSON.stringify(c.logs)),
+    savedAt:new Date().toISOString()
   };
-  state.logs.push(x);
-  persist();
-  renderLog();
-  renderSummary();
-
-  const status=document.getElementById("selectionStatus");
-  status.textContent=eventText(x);
-  status.classList.remove("flash");
-  void status.offsetWidth;
-  status.classList.add("flash");
-  vibrate();
-  toast("記録したよ");
-
-  // Keep the event selected for rapid repeated entry.
-  // Reset only the first player so the next play is two quick taps.
-  fromNum=null;
-  setTimeout(renderEntry,260);
+  state.history.push(saved);
+  const roster=[...c.roster];
+  state.current={opponent:"",matchName:"",roster,blackOut:[],oppOut:[],logs:[]};
+  currentEvent=null;step=0;firstNum=null;
+  document.querySelectorAll(".event").forEach(b=>b.classList.remove("active"));
+  persist();renderAll();toast("試合を保存したよ");openHistory()
 }
-function eventText(x){
-  if(x.event==="black_attack") return `BLACK ${x.from} → 相手 ${x.to}（アタック成功）`;
-  if(x.event==="opp_attack") return `相手 ${x.from} → BLACK ${x.to}（アタック成功）`;
-  if(x.event==="black_caught") return `BLACK ${x.from} → 相手 ${x.to}（キャッチ成功）`;
-  if(x.event==="opp_caught") return `相手 ${x.from} → BLACK ${x.to}（キャッチ成功）`;
-  if(x.event==="assist") return `BLACK ${x.from}（アシスト）→ ${x.to}（アタック成功）`;
-  return "";
-}
-function renderLog(){
-  const box=document.getElementById("log");
-  document.getElementById("countBadge").textContent=`${state.logs.length}件`;
-  if(!state.logs.length){
-    box.innerHTML='<div class="empty">まだ記録がありません</div>';
+function openHistory(){renderHistory();openSheet("historySheet")}
+function renderPlayerTotals(){
+  const box=document.getElementById("playerTotals");
+  const agg=playerAggregate();
+  if(!agg.length){
+    box.innerHTML='<div class="muted" style="text-align:center;font-size:12px;padding:7px">まだ集計データがありません</div>';
     return;
   }
-  box.innerHTML="";
-  [...state.logs].reverse().forEach((x,idx)=>{
-    const row=document.createElement("div");
-    row.className="log-row";
-    const n=state.logs.length-idx;
-    row.innerHTML=`<div>${n}</div><div><strong>${eventText(x)}</strong><br><span class="hint">${x.t}</span></div><span class="badge">${meta[x.event].label}</span>`;
-    box.appendChild(row);
+  let h='<table class="totals-table"><thead><tr><th>背番号</th><th>アタック成功</th><th>キャッチ成功</th><th>アシスト成功</th></tr></thead><tbody>';
+  agg.forEach(([n,v])=>{
+    h+=`<tr><td>${n}</td><td>${v.attackSuccess}</td><td>${v.catchSuccess}</td><td>${v.assistSuccess}</td></tr>`;
   });
+  h+='</tbody></table>';
+  box.innerHTML=h;
 }
-function count(event,field){
-  const m={};
-  state.logs.filter(x=>x.event===event).forEach(x=>m[x[field]]=(m[x[field]]||0)+1);
-  return Object.entries(m).sort((a,b)=>Number(a[0])-Number(b[0]))
-    .map(([n,c])=>`${n}番×${c}`).join("、")||"なし";
+function renderHistory(){
+  document.getElementById("historyTournament").textContent=state.tournament.name||"大会名未設定";
+  document.getElementById("historyDate").textContent=state.tournament.date?`大会日：${state.tournament.date}`:"";
+  document.getElementById("savedMatches").textContent=state.history.length;
+  document.getElementById("totalAttack").textContent=state.history.reduce((s,m)=>s+countEvent(m.logs,"black_attack"),0);
+  document.getElementById("totalCatch").textContent=state.history.reduce((s,m)=>s+countEvent(m.logs,"opp_caught"),0);
+  renderPlayerTotals();
+  const list=document.getElementById("historyList");list.innerHTML="";
+  if(!state.history.length){list.innerHTML='<div class="card muted" style="text-align:center;font-size:12px">まだ保存した試合はありません</div>';return}
+  state.history.forEach((m,i)=>{
+    const card=document.createElement("div");card.className="history-card";
+    const saved=new Date(m.savedAt);
+    card.innerHTML=`
+      <div class="history-head">
+        <div><div class="history-title">${escapeHtml(m.matchName)}　vs ${escapeHtml(m.opponent)}</div>
+        <div class="history-meta">出場：${m.roster.length?m.roster.join("・"):"未設定"}｜元外野 B:${m.blackOut.length?m.blackOut.join("・"):"－"} / 相手:${m.oppOut.length?m.oppOut.join("・"):"－"}</div></div>
+        <span class="count">${i+1}試合目</span>
+      </div>
+      <div class="history-stats">
+        <div class="stat"><strong>${countEvent(m.logs,"black_attack")}</strong><span>アタック成功</span></div>
+        <div class="stat"><strong>${countEvent(m.logs,"opp_caught")}</strong><span>キャッチ成功</span></div>
+        <div class="stat"><strong>${countEvent(m.logs,"assist")}</strong><span>アシスト</span></div>
+      </div>
+      <div class="history-actions">
+        <button class="btn" data-view="${i}">詳細</button>
+        <button class="btn" data-share="${i}">共有</button>
+        <button class="btn danger" data-delete="${i}">削除</button>
+      </div>`;
+    list.appendChild(card)
+  });
+  list.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>showDetail(Number(b.dataset.view)));
+  list.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>shareMatch(Number(b.dataset.share)));
+  list.querySelectorAll("[data-delete]").forEach(b=>b.onclick=()=>deleteMatch(Number(b.dataset.delete)))
 }
-function renderSummary(){
-  const el=document.getElementById("summary");
-  if(!state.logs.length){el.textContent="まだ記録がありません。";return;}
-  el.innerHTML=`
-    <div><strong>アタック成功：</strong>${count("black_attack","from")}</div>
-    <div><strong>被弾：</strong>${count("opp_attack","to")}</div>
-    <div><strong>キャッチ成功：</strong>${count("opp_caught","to")}</div>
-    <div><strong>相手にキャッチされたアタック：</strong>${count("black_caught","from")}</div>
-    <div><strong>アシスト：</strong>${count("assist","from")}</div>
-  `;
+function showDetail(i){
+  detailIndex=i;const m=state.history[i];
+  document.getElementById("detailTitle").textContent=`${m.matchName}　vs ${m.opponent}`;
+  document.getElementById("detailMeta").textContent=`出場：${m.roster.length?m.roster.join("・"):"未設定"}｜元外野 BLACK:${m.blackOut.length?m.blackOut.join("・"):"－"} / 相手:${m.oppOut.length?m.oppOut.join("・"):"－"}`;
+  const box=document.getElementById("detailLog");box.innerHTML="";
+  if(!m.logs.length)box.innerHTML='<div class="muted" style="text-align:center">記録なし</div>';
+  else [...m.logs].reverse().forEach((x,idx)=>{const row=document.createElement("div");row.className="latest";row.innerHTML=`<span class="count">${m.logs.length-idx}</span><span><strong>${textOf(x)}</strong><br><span class="muted">${x.time}</span></span><span class="count">${meta[x.event].label}</span>`;box.appendChild(row)});
+  document.getElementById("detailSummary").innerHTML=matchSummaryHtml(m);
+  openSheet("detailSheet")
 }
-function undo(){
-  if(!state.logs.length){toast("戻す記録がないよ");return;}
-  const x=state.logs.pop();
-  persist();renderLog();renderSummary();
-  toast("1件戻したよ");
+function deleteMatch(i){
+  if(!confirm(`${state.history[i].matchName} vs ${state.history[i].opponent} を削除する？`))return;
+  state.history.splice(i,1);persist();renderHistory();toast("削除したよ")
 }
-function newMatch(){
-  if(!confirm("今の試合記録を消して、新しい試合を始める？")) return;
-  const keep=confirm("出場選手は残す？");
-  const roster=keep?[...state.roster]:[];
-  state={opponent:"",matchName:"",roster,blackOut:null,oppOut:null,logs:[]};
-  currentEvent=null;fromNum=null;
-  localStorage.setItem(KEY,JSON.stringify(state));
-  document.getElementById("opponent").value="";
-  document.getElementById("matchName").value="";
-  document.getElementById("entryPanel").classList.add("hidden");
-  document.querySelectorAll(".event").forEach(b=>b.classList.remove("active"));
-  renderAll();
-  window.scrollTo({top:0,behavior:"smooth"});
+function playerAggregate(){
+  const agg={};
+  const ensure=n=>agg[n]||(agg[n]={attackSuccess:0,catchSuccess:0,assistSuccess:0});
+  state.history.forEach(m=>{
+    m.logs.forEach(x=>{
+      if(x.event==="black_attack")ensure(x.a).attackSuccess++;
+      if(x.event==="opp_caught")ensure(x.b).catchSuccess++;
+      if(x.event==="assist")ensure(x.a).assistSuccess++;
+    })
+  });
+  return Object.entries(agg).sort((a,b)=>Number(a[0])-Number(b[0]))
 }
-function textExport(){
-  const title=`${state.matchName||"試合"} / vs ${state.opponent||"相手"}`;
-  const roster=state.roster.length?state.roster.join(", "):"未設定";
-  let t=`${title}\n出場選手(BLACK): ${roster}\n元外野 BLACK:${state.blackOut??"未設定"} / 相手:${state.oppOut??"未設定"}\n\n`;
-  state.logs.forEach((x,i)=>t+=`${i+1}. ${eventText(x)}\n`);
-  return t;
+function matchShareText(m,index=null){
+  let t=`【${m.matchName} vs ${m.opponent}】\n`;
+  t+=`BLACK アタック成功：${countEvent(m.logs,"black_attack")}本\n`;
+  t+=`BLACK キャッチ成功：${countEvent(m.logs,"opp_caught")}本\n`;
+  t+=`BLACK アシスト：${countEvent(m.logs,"assist")}本\n`;
+  t+=`被弾：${countEvent(m.logs,"opp_attack")}回\n\n`;
+  t+=`▼個人記録\n`;
+  const numsSet=[...new Set(m.roster)].sort((a,b)=>a-b);
+  numsSet.forEach(n=>{
+    const a=m.logs.filter(x=>x.event==="black_attack"&&x.a===n).length;
+    const c=m.logs.filter(x=>x.event==="opp_caught"&&x.b===n).length;
+    const s=m.logs.filter(x=>x.event==="assist"&&x.a===n).length;
+    const h=m.logs.filter(x=>x.event==="opp_attack"&&x.b===n).length;
+    if(a||c||s||h)t+=`${n}番：AT${a} / C${c} / AS${s} / 被弾${h}\n`
+  });
+  return t.trim()
 }
-async function copySummary(){
-  const t=textExport();
-  try{
-    await navigator.clipboard.writeText(t);
-    toast("コピーしたよ");
-  }catch(e){
-    prompt("この内容をコピーしてね",t);
+function tournamentShareText(){
+  let t=`🏐 ${state.tournament.name||"大会結果"}\n`;
+  if(state.tournament.date)t+=`${state.tournament.date}\n`;
+  t+=`\n全${state.history.length}試合\n\n`;
+  state.history.forEach((m,i)=>{
+    t+=`【${i+1}試合目】${m.matchName} vs ${m.opponent}\n`;
+    t+=`アタック成功 ${countEvent(m.logs,"black_attack")} / キャッチ成功 ${countEvent(m.logs,"opp_caught")} / アシスト ${countEvent(m.logs,"assist")} / 被弾 ${countEvent(m.logs,"opp_attack")}\n\n`
+  });
+  const agg=playerAggregate();
+  if(agg.length){
+    t+=`▼BLACK OWL 大会個人集計\n`;
+    agg.forEach(([n,v])=>{
+      t+=`${n}番：アタック成功${v.attackSuccess} / キャッチ成功${v.catchSuccess} / アシスト成功${v.assistSuccess}\n`
+    })
   }
+  return t.trim()
 }
-function downloadCSV(){
-  const rows=[["No","時刻","種別","FROM","TO"]];
-  state.logs.forEach((x,i)=>rows.push([i+1,x.t,meta[x.event].label,x.from,x.to]));
-  const csv="\ufeff"+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
-  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=`BLACK_OWL_${state.opponent||"試合"}_score.csv`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+async function shareText(title,text){
+  try{
+    if(navigator.share){await navigator.share({title,text});return}
+  }catch(e){if(e.name==="AbortError")return}
+  try{await navigator.clipboard.writeText(text);toast("共有文をコピーしたよ")}
+  catch(e){prompt("この内容をコピーしてね",text)}
 }
-function renderAll(){
-  renderStatic();renderLog();renderSummary();
+function shareMatch(i){shareText(`${state.history[i].matchName} vs ${state.history[i].opponent}`,matchShareText(state.history[i],i))}
+function downloadAllCsv(){
+  const rows=[["大会名","大会日","試合","対戦相手","No","時刻","種別","FROM","TO"]];
+  state.history.forEach(m=>m.logs.forEach((x,i)=>rows.push([state.tournament.name,state.tournament.date,m.matchName,m.opponent,i+1,x.time,meta[x.event].label,x.a,x.b])));
+  const csv="\ufeff"+rows.map(r=>r.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=`${state.tournament.name||"BLACK_OWL_大会"}_全試合.csv`;a.click();URL.revokeObjectURL(a.href)
 }
+function newTournament(){
+  if(state.history.length && !confirm("保存済みの大会記録を消して、新しい大会を始める？"))return;
+  const keepRoster=confirm("BLACKの出場選手は残す？");
+  const roster=keepRoster?[...state.current.roster]:[];
+  state={tournament:{name:"",date:today()},current:{opponent:"",matchName:"",roster,blackOut:[],oppOut:[],logs:[]},history:[]};
+  currentEvent=null;step=0;firstNum=null;persist();closeSheet("historySheet");renderAll();openSheet("settingsSheet")
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function renderAll(){updateHeader();renderLatest();renderSetup();renderNumberPad();updateStage();renderHistory()}
 
 load();
-["rosterButtons","blackOutButtons","oppOutButtons","fromButtons","toButtons"].forEach((id,i)=>{
-  buildNumbers(id,["roster","blackOut","oppOut","from","to"][i]);
-});
-document.getElementById("opponent").value=state.opponent||"";
-document.getElementById("matchName").value=state.matchName||"";
+buildPad("rosterPad",n=>{toggleIn(state.current.roster,n);persist();renderSetup();renderNumberPad();vibrate()});
+buildPad("blackOutPad",n=>{toggleIn(state.current.blackOut,n);persist();renderSetup();updateHeader();vibrate()});
+buildPad("oppOutPad",n=>{toggleIn(state.current.oppOut,n);persist();renderSetup();updateHeader();vibrate()});
 
 document.querySelectorAll(".event").forEach(b=>b.onclick=()=>chooseEvent(b.dataset.event));
-document.getElementById("opponent").addEventListener("input",persist);
-document.getElementById("matchName").addEventListener("input",persist);
-document.getElementById("clearRoster").onclick=()=>{state.roster=[];persist();renderStatic()};
+document.getElementById("openSettings").onclick=()=>{renderSetup();openSheet("settingsSheet")};
+document.getElementById("closeSettings").onclick=()=>{
+  state.tournament.name=document.getElementById("tournamentName").value.trim();
+  state.tournament.date=document.getElementById("tournamentDate").value||today();
+  state.current.opponent=document.getElementById("opponent").value.trim();
+  state.current.matchName=document.getElementById("matchName").value.trim();
+  persist();updateHeader();closeSheet("settingsSheet");renderNumberPad()
+};
+["tournamentName","tournamentDate","opponent","matchName"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{
+  state.tournament.name=document.getElementById("tournamentName").value.trim();
+  state.tournament.date=document.getElementById("tournamentDate").value||today();
+  state.current.opponent=document.getElementById("opponent").value.trim();
+  state.current.matchName=document.getElementById("matchName").value.trim();
+  persist();updateHeader()
+}));
+document.getElementById("clearSetup").onclick=()=>{state.current.roster=[];state.current.blackOut=[];state.current.oppOut=[];persist();renderSetup();renderNumberPad();updateHeader()};
 document.getElementById("undo").onclick=undo;
-document.getElementById("undoTop").onclick=undo;
-document.getElementById("newMatch").onclick=newMatch;
-document.getElementById("scrollTop").onclick=()=>window.scrollTo({top:0,behavior:"smooth"});
-document.getElementById("copySummary").onclick=copySummary;
-document.getElementById("downloadCsv").onclick=downloadCSV;
+document.getElementById("finishMatch").onclick=saveCurrentMatch;
+document.getElementById("openHistory").onclick=openHistory;
+document.getElementById("closeHistory").onclick=()=>closeSheet("historySheet");
+document.getElementById("closeDetail").onclick=()=>closeSheet("detailSheet");
+document.getElementById("shareOne").onclick=()=>{if(detailIndex!==null)shareMatch(detailIndex)};
+document.getElementById("shareTournament").onclick=()=>shareText(state.tournament.name||"大会結果",tournamentShareText());
+document.getElementById("copyTournament").onclick=async()=>{
+  const t=tournamentShareText();
+  try{await navigator.clipboard.writeText(t);toast("共有文をコピーしたよ")}catch(e){prompt("この内容をコピーしてね",t)}
+};
+document.getElementById("downloadAllCsv").onclick=downloadAllCsv;
+document.getElementById("newTournament").onclick=newTournament;
+["settingsSheet","historySheet","detailSheet"].forEach(id=>document.getElementById(id).addEventListener("click",e=>{if(e.target.id===id)closeSheet(id)}));
 
 renderAll();
 </script>
