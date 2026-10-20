@@ -349,7 +349,7 @@ function countEvent(logs,event){return logs.filter(x=>x.event===event).length}
 function matchSummaryHtml(m){
   return `
     <div><strong>アタック成功：</strong>${counts(m.logs,"black_attack","a")}</div>
-    <div><strong>被弾：</strong>${counts(m.logs,"opp_attack","b")}</div>
+    <div><strong>アウト：</strong>${counts(m.logs,"opp_attack","b")}</div>
     <div><strong>キャッチ成功：</strong>${counts(m.logs,"opp_caught","b")}</div>
     <div><strong>相手にキャッチされたアタック：</strong>${counts(m.logs,"black_caught","a")}</div>
     <div><strong>アシスト：</strong>${counts(m.logs,"assist","a")}</div>`
@@ -451,7 +451,7 @@ function matchShareText(m,index=null){
   t+=`BLACK アタック成功：${countEvent(m.logs,"black_attack")}本\n`;
   t+=`BLACK キャッチ成功：${countEvent(m.logs,"opp_caught")}本\n`;
   t+=`BLACK アシスト：${countEvent(m.logs,"assist")}本\n`;
-  t+=`被弾：${countEvent(m.logs,"opp_attack")}回\n\n`;
+  t+=`アウト：${countEvent(m.logs,"opp_attack")}回\n\n`;
   t+=`▼個人記録\n`;
   const numsSet=[...new Set(m.roster)].sort((a,b)=>a-b);
   numsSet.forEach(n=>{
@@ -459,7 +459,7 @@ function matchShareText(m,index=null){
     const c=m.logs.filter(x=>x.event==="opp_caught"&&x.b===n).length;
     const s=m.logs.filter(x=>x.event==="assist"&&x.a===n).length;
     const h=m.logs.filter(x=>x.event==="opp_attack"&&x.b===n).length;
-    if(a||c||s||h)t+=`${n}番：AT${a} / C${c} / AS${s} / 被弾${h}\n`
+    if(a||c||s||h)t+=`${n}番：AT${a} / C${c} / AS${s} / アウト${h}\n`
   });
   return t.trim()
 }
@@ -469,7 +469,7 @@ function tournamentShareText(){
   t+=`\n全${state.history.length}試合\n\n`;
   state.history.forEach((m,i)=>{
     t+=`【${i+1}試合目】${m.matchName} vs ${m.opponent}\n`;
-    t+=`アタック成功 ${countEvent(m.logs,"black_attack")} / キャッチ成功 ${countEvent(m.logs,"opp_caught")} / アシスト ${countEvent(m.logs,"assist")} / 被弾 ${countEvent(m.logs,"opp_attack")}\n\n`
+    t+=`アタック成功 ${countEvent(m.logs,"black_attack")} / キャッチ成功 ${countEvent(m.logs,"opp_caught")} / アシスト ${countEvent(m.logs,"assist")} / アウト ${countEvent(m.logs,"opp_attack")}\n\n`
   });
   const agg=playerAggregate();
   if(agg.length){
