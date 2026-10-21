@@ -102,6 +102,8 @@ button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
       <button class="event" data-event="black_caught">BLACKアタック<br>相手キャッチ成功</button>
       <button class="event" data-event="opp_caught">相手アタック<br>BLACKキャッチ成功</button>
       <button class="event full" data-event="assist">BLACK　アシスト → アタック成功</button>
+      <button class="event" data-event="cut_success">BLACK<br>カット成功</button>
+      <button class="event" data-event="jump_win">ジャンプボール<br>勝ち</button>
     </div>
   </div>
 
@@ -161,16 +163,11 @@ button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
 
       <div class="card">
         <div class="section-title">ジャンパーの背番号</div>
-        <div class="actions">
-          <div class="field" style="margin:0">
-            <label>BLACK</label>
-            <select id="blackJumper"></select>
-          </div>
-          <div class="field" style="margin:0">
-            <label>相手</label>
-            <select id="oppJumper"></select>
-          </div>
-        </div>
+        <div style="font-size:12px;font-weight:800;margin-bottom:5px">BLACK</div>
+        <div class="smallpad" id="blackJumperPad"></div>
+        <div style="font-size:12px;font-weight:800;margin:10px 0 5px">相手</div>
+        <div class="smallpad" id="oppJumperPad"></div>
+        <div class="sub">ジャンパーは各チーム1人だけ選択できます。</div>
       </div>
 
       <div class="card">
@@ -260,11 +257,13 @@ const OLDKEY="blackowl_score_best_v1";
 const nums=Array.from({length:20},(_,i)=>i+1);
 
 const meta={
-  black_attack:{label:"BLACK アタック成功",firstTeam:"BLACK",secondTeam:"相手",firstPrompt:"アタックした BLACK の背番号",secondPrompt:"当たった 相手 の背番号",text:(a,b)=>`BLACK ${a} → 相手 ${b}（アタック成功）`},
-  opp_attack:{label:"相手 アタック成功",firstTeam:"相手",secondTeam:"BLACK",firstPrompt:"アタックした 相手 の背番号",secondPrompt:"当たった BLACK の背番号",text:(a,b)=>`相手 ${a} → BLACK ${b}（アタック成功）`},
-  black_caught:{label:"相手 キャッチ成功",firstTeam:"BLACK",secondTeam:"相手",firstPrompt:"アタックした BLACK の背番号",secondPrompt:"キャッチした 相手 の背番号",text:(a,b)=>`BLACK ${a} → 相手 ${b}（キャッチ成功）`},
-  opp_caught:{label:"BLACK キャッチ成功",firstTeam:"相手",secondTeam:"BLACK",firstPrompt:"アタックした 相手 の背番号",secondPrompt:"キャッチした BLACK の背番号",text:(a,b)=>`相手 ${a} → BLACK ${b}（キャッチ成功）`},
-  assist:{label:"BLACK アシスト",firstTeam:"BLACK",secondTeam:"BLACK",firstPrompt:"アシストした BLACK の背番号",secondPrompt:"アタック成功した BLACK の背番号",text:(a,b)=>`BLACK ${a}（アシスト）→ ${b}（アタック成功）`}
+  black_attack:{inputs:2,label:"BLACK アタック成功",firstTeam:"BLACK",secondTeam:"相手",firstPrompt:"アタックした BLACK の背番号",secondPrompt:"当たった 相手 の背番号",text:(a,b)=>`BLACK ${a} → 相手 ${b}（アタック成功）`},
+  opp_attack:{inputs:2,label:"相手 アタック成功",firstTeam:"相手",secondTeam:"BLACK",firstPrompt:"アタックした 相手 の背番号",secondPrompt:"当たった BLACK の背番号",text:(a,b)=>`相手 ${a} → BLACK ${b}（アタック成功）`},
+  black_caught:{inputs:2,label:"相手 キャッチ成功",firstTeam:"BLACK",secondTeam:"相手",firstPrompt:"アタックした BLACK の背番号",secondPrompt:"キャッチした 相手 の背番号",text:(a,b)=>`BLACK ${a} → 相手 ${b}（キャッチ成功）`},
+  opp_caught:{inputs:2,label:"BLACK キャッチ成功",firstTeam:"相手",secondTeam:"BLACK",firstPrompt:"アタックした 相手 の背番号",secondPrompt:"キャッチした BLACK の背番号",text:(a,b)=>`相手 ${a} → BLACK ${b}（キャッチ成功）`},
+  assist:{inputs:2,label:"BLACK アシスト",firstTeam:"BLACK",secondTeam:"BLACK",firstPrompt:"アシストした BLACK の背番号",secondPrompt:"アタック成功した BLACK の背番号",text:(a,b)=>`BLACK ${a}（アシスト）→ ${b}（アタック成功）`},
+  cut_success:{inputs:1,label:"BLACK カット成功",firstTeam:"BLACK",firstPrompt:"カット成功した BLACK の背番号",text:(a)=>`BLACK ${a}（カット成功）`},
+  jump_win:{inputs:0,label:"ジャンプボール勝ち",text:(a)=>a?`ジャンプボール勝ち（BLACK ${a}）`:"ジャンプボール勝ち"}
 };
 
 let state={
@@ -279,24 +278,36 @@ function newId(){return `${Date.now()}_${Math.random().toString(16).slice(2)}`}
 function load(){
   try{
     const saved=JSON.parse(localStorage.getItem(KEY));
-    if(saved){state={...state,...saved};return}
-    const old=JSON.parse(localStorage.getItem(OLDKEY));
-    if(old){
-      state.current={
-        opponent:old.opponent||"",matchName:old.matchName||"",
-        roster:old.roster||[],
-        blackJumper:old.blackJumper||null,oppJumper:old.oppJumper||null,
-        blackOut:Array.isArray(old.blackOut)?old.blackOut:(old.blackOut?[old.blackOut]:[]),
-        oppOut:Array.isArray(old.oppOut)?old.oppOut:(old.oppOut?[old.oppOut]:[]),
-        logs:old.logs||[]
+    if(saved){
+      state={
+        tournament:{...state.tournament,...(saved.tournament||{})},
+        current:{...state.current,...(saved.current||{})},
+        history:Array.isArray(saved.history)?saved.history:[]
       };
+    }else{
+      const old=JSON.parse(localStorage.getItem(OLDKEY));
+      if(old){
+        state.current={
+          opponent:old.opponent||"",matchName:old.matchName||"",
+          roster:old.roster||[],
+          blackJumper:old.blackJumper||null,oppJumper:old.oppJumper||null,
+          blackOut:Array.isArray(old.blackOut)?old.blackOut:(old.blackOut?[old.blackOut]:[]),
+          oppOut:Array.isArray(old.oppOut)?old.oppOut:(old.oppOut?[old.oppOut]:[]),
+          logs:old.logs||[]
+        };
+      }
     }
   }catch(e){}
   if(state.current.blackJumper===undefined)state.current.blackJumper=null;
   if(state.current.oppJumper===undefined)state.current.oppJumper=null;
+  if(!Array.isArray(state.current.roster))state.current.roster=[];
+  if(!Array.isArray(state.current.blackOut))state.current.blackOut=[];
+  if(!Array.isArray(state.current.oppOut))state.current.oppOut=[];
+  if(!Array.isArray(state.current.logs))state.current.logs=[];
   state.history.forEach(m=>{
     if(m.blackJumper===undefined)m.blackJumper=null;
     if(m.oppJumper===undefined)m.oppJumper=null;
+    if(!Array.isArray(m.logs))m.logs=[];
   });
   if(!state.tournament.date)state.tournament.date=today();
 }
@@ -305,26 +316,57 @@ function vibrate(){try{if(navigator.vibrate)navigator.vibrate(22)}catch(e){}}
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),700)}
 function toggleIn(arr,n){const i=arr.indexOf(n);if(i>=0)arr.splice(i,1);else arr.push(n);arr.sort((a,b)=>a-b)}
 function buildPad(id,handler){const box=document.getElementById(id);box.innerHTML="";nums.forEach(n=>{const b=document.createElement("button");b.className="num";b.textContent=n;b.dataset.n=n;b.onclick=()=>handler(n);box.appendChild(b)})}
-function currentTeam(){if(!currentEvent)return null;return step===0?meta[currentEvent].firstTeam:meta[currentEvent].secondTeam}
+function currentTeam(){
+  if(!currentEvent)return null;
+  return step===0?meta[currentEvent].firstTeam:meta[currentEvent].secondTeam
+}
 function isAllowed(n){const team=currentTeam();if(team!=="BLACK")return true;if(!state.current.roster.length)return true;return state.current.roster.includes(n)}
 function renderNumberPad(){
   const box=document.getElementById("numberPad");box.innerHTML="";
   nums.forEach(n=>{const b=document.createElement("button");b.className="num";b.textContent=n;if(!isAllowed(n)){b.classList.add("disabled");b.disabled=true}b.onclick=()=>numberTap(n);box.appendChild(b)})
 }
 function chooseEvent(ev){
+  const m=meta[ev];
+
+  // ジャンプボール勝ちはジャンパー設定済みなら1タップで即記録
+  if(m.inputs===0){
+    const jumper=state.current.blackJumper||null;
+    const x={
+      event:ev,a:jumper,b:null,
+      time:new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",second:"2-digit"})
+    };
+    state.current.logs.push(x);persist();
+    renderLatest();updateHeader();toast("ジャンプボール勝ちを記録！");vibrate();
+    return;
+  }
+
   currentEvent=ev;step=0;firstNum=null;
   document.querySelectorAll(".event").forEach(b=>b.classList.toggle("active",b.dataset.event===ev));
   updateStage();renderNumberPad();vibrate()
 }
 function updateStage(){
   const big=document.getElementById("stageBig"),small=document.getElementById("stageSmall");
-  if(!currentEvent){big.textContent="プレーを選んでね";small.textContent="そのあと背番号を2回タップすると自動記録";return}
+  if(!currentEvent){big.textContent="プレーを選んでね";small.textContent="必要な背番号をタップすると自動記録";return}
   const m=meta[currentEvent];
+  if(m.inputs===1){
+    big.textContent=m.firstPrompt;small.textContent="背番号を1回タップすると自動記録";return
+  }
   if(step===0){big.textContent=m.firstPrompt;small.textContent="① 1人目をタップ"}
   else{big.textContent=m.secondPrompt;small.textContent=`① ${firstNum}番を選択済み → ② 2人目をタップ`}
 }
 function numberTap(n){
   if(!currentEvent){toast("先にプレーを選んでね");return}
+  const m=meta[currentEvent];
+
+  // カット成功は背番号1タップで即記録
+  if(m.inputs===1){
+    const x={event:currentEvent,a:n,b:null,time:new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",second:"2-digit"})};
+    state.current.logs.push(x);persist();
+    const stage=document.getElementById("stageBox");stage.classList.remove("flash");void stage.offsetWidth;stage.classList.add("flash");
+    toast("カット成功を記録！");vibrate();renderLatest();updateHeader();
+    return;
+  }
+
   if(step===0){firstNum=n;step=1;updateStage();renderNumberPad();vibrate();return}
   const x={event:currentEvent,a:firstNum,b:n,time:new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",second:"2-digit"})};
   state.current.logs.push(x);persist();
@@ -347,29 +389,14 @@ function renderLatest(){
   box.innerHTML="";
   [...logs].slice(-3).reverse().forEach((x,idx)=>{const row=document.createElement("div");row.className="latest";row.innerHTML=`<span class="count">${logs.length-idx}</span><strong>${textOf(x)}</strong><span class="muted">${x.time.slice(0,5)}</span>`;box.appendChild(row)})
 }
-function fillJumperSelects(){
-  ["blackJumper","oppJumper"].forEach(id=>{
-    const s=document.getElementById(id);
-    if(s.options.length)return;
-    const blank=document.createElement("option");
-    blank.value="";blank.textContent="未設定";
-    s.appendChild(blank);
-    nums.forEach(n=>{
-      const o=document.createElement("option");
-      o.value=n;o.textContent=`${n}番`;
-      s.appendChild(o);
-    });
-  });
-}
 function renderSetup(){
   const c=state.current;
   document.getElementById("tournamentName").value=state.tournament.name||"";
   document.getElementById("tournamentDate").value=state.tournament.date||today();
   document.getElementById("opponent").value=c.opponent||"";
   document.getElementById("matchName").value=c.matchName||"";
-  fillJumperSelects();
-  document.getElementById("blackJumper").value=c.blackJumper||"";
-  document.getElementById("oppJumper").value=c.oppJumper||"";
+  document.querySelectorAll("#blackJumperPad .num").forEach(b=>b.classList.toggle("selected",c.blackJumper===Number(b.dataset.n)));
+  document.querySelectorAll("#oppJumperPad .num").forEach(b=>b.classList.toggle("selected",c.oppJumper===Number(b.dataset.n)));
   document.querySelectorAll("#rosterPad .num").forEach(b=>b.classList.toggle("selected",c.roster.includes(Number(b.dataset.n))));
   document.querySelectorAll("#blackOutPad .num").forEach(b=>b.classList.toggle("selected",c.blackOut.includes(Number(b.dataset.n))));
   document.querySelectorAll("#oppOutPad .num").forEach(b=>b.classList.toggle("selected",c.oppOut.includes(Number(b.dataset.n))))
@@ -392,7 +419,9 @@ function matchSummaryHtml(m){
     <div><strong>アウト：</strong>${counts(m.logs,"opp_attack","b")}</div>
     <div><strong>キャッチ成功：</strong>${counts(m.logs,"opp_caught","b")}</div>
     <div><strong>相手にキャッチされたアタック：</strong>${counts(m.logs,"black_caught","a")}</div>
-    <div><strong>アシスト：</strong>${counts(m.logs,"assist","a")}</div>`
+    <div><strong>アシスト：</strong>${counts(m.logs,"assist","a")}</div>
+    <div><strong>カット成功：</strong>${counts(m.logs,"cut_success","a")}</div>
+    <div><strong>ジャンプボール勝ち：</strong>${countEvent(m.logs,"jump_win")}回</div>`
 }
 function saveCurrentMatch(){
   const c=state.current;
@@ -420,9 +449,9 @@ function renderPlayerTotals(){
     box.innerHTML='<div class="muted" style="text-align:center;font-size:12px;padding:7px">まだ集計データがありません</div>';
     return;
   }
-  let h='<table class="totals-table"><thead><tr><th>背番号</th><th>アタック成功</th><th>キャッチ成功</th><th>アシスト成功</th></tr></thead><tbody>';
+  let h='<table class="totals-table"><thead><tr><th>背番号</th><th>アタック成功</th><th>キャッチ成功</th><th>アシスト成功</th><th>カット成功</th></tr></thead><tbody>';
   agg.forEach(([n,v])=>{
-    h+=`<tr><td>${n}</td><td>${v.attackSuccess}</td><td>${v.catchSuccess}</td><td>${v.assistSuccess}</td></tr>`;
+    h+=`<tr><td>${n}</td><td>${v.attackSuccess}</td><td>${v.catchSuccess}</td><td>${v.assistSuccess}</td><td>${v.cutSuccess}</td></tr>`;
   });
   h+='</tbody></table>';
   box.innerHTML=h;
@@ -477,12 +506,13 @@ function deleteMatch(i){
 }
 function playerAggregate(){
   const agg={};
-  const ensure=n=>agg[n]||(agg[n]={attackSuccess:0,catchSuccess:0,assistSuccess:0});
+  const ensure=n=>agg[n]||(agg[n]={attackSuccess:0,catchSuccess:0,assistSuccess:0,cutSuccess:0});
   state.history.forEach(m=>{
     m.logs.forEach(x=>{
       if(x.event==="black_attack")ensure(x.a).attackSuccess++;
       if(x.event==="opp_caught")ensure(x.b).catchSuccess++;
       if(x.event==="assist")ensure(x.a).assistSuccess++;
+      if(x.event==="cut_success")ensure(x.a).cutSuccess++;
     })
   });
   return Object.entries(agg).sort((a,b)=>Number(a[0])-Number(b[0]))
@@ -493,6 +523,8 @@ function matchShareText(m,index=null){
   t+=`BLACK アタック成功：${countEvent(m.logs,"black_attack")}本\n`;
   t+=`BLACK キャッチ成功：${countEvent(m.logs,"opp_caught")}本\n`;
   t+=`BLACK アシスト：${countEvent(m.logs,"assist")}本\n`;
+  t+=`BLACK カット成功：${countEvent(m.logs,"cut_success")}回\n`;
+  t+=`ジャンプボール勝ち：${countEvent(m.logs,"jump_win")}回\n`;
   t+=`アウト：${countEvent(m.logs,"opp_attack")}回\n\n`;
   t+=`▼個人記録\n`;
   const numsSet=[...new Set(m.roster)].sort((a,b)=>a-b);
@@ -500,8 +532,9 @@ function matchShareText(m,index=null){
     const a=m.logs.filter(x=>x.event==="black_attack"&&x.a===n).length;
     const c=m.logs.filter(x=>x.event==="opp_caught"&&x.b===n).length;
     const s=m.logs.filter(x=>x.event==="assist"&&x.a===n).length;
+    const cut=m.logs.filter(x=>x.event==="cut_success"&&x.a===n).length;
     const h=m.logs.filter(x=>x.event==="opp_attack"&&x.b===n).length;
-    if(a||c||s||h)t+=`${n}番：AT${a} / C${c} / AS${s} / アウト${h}\n`
+    if(a||c||s||cut||h)t+=`${n}番：AT${a} / C${c} / AS${s} / カット${cut} / アウト${h}\n`
   });
   return t.trim()
 }
@@ -511,13 +544,13 @@ function tournamentShareText(){
   t+=`\n全${state.history.length}試合\n\n`;
   state.history.forEach((m,i)=>{
     t+=`【${i+1}試合目】${m.matchName} vs ${m.opponent}\n`;
-    t+=`アタック成功 ${countEvent(m.logs,"black_attack")} / キャッチ成功 ${countEvent(m.logs,"opp_caught")} / アシスト ${countEvent(m.logs,"assist")} / アウト ${countEvent(m.logs,"opp_attack")}\n\n`
+    t+=`アタック成功 ${countEvent(m.logs,"black_attack")} / キャッチ成功 ${countEvent(m.logs,"opp_caught")} / アシスト ${countEvent(m.logs,"assist")} / カット成功 ${countEvent(m.logs,"cut_success")} / ジャンプ勝ち ${countEvent(m.logs,"jump_win")} / アウト ${countEvent(m.logs,"opp_attack")}\n\n`
   });
   const agg=playerAggregate();
   if(agg.length){
     t+=`▼BLACK OWL 大会個人集計\n`;
     agg.forEach(([n,v])=>{
-      t+=`${n}番：アタック成功${v.attackSuccess} / キャッチ成功${v.catchSuccess} / アシスト成功${v.assistSuccess}\n`
+      t+=`${n}番：アタック成功${v.attackSuccess} / キャッチ成功${v.catchSuccess} / アシスト成功${v.assistSuccess} / カット成功${v.cutSuccess}\n`
     })
   }
   return t.trim()
@@ -549,6 +582,8 @@ function renderAll(){updateHeader();renderLatest();renderSetup();renderNumberPad
 
 load();
 buildPad("rosterPad",n=>{toggleIn(state.current.roster,n);persist();renderSetup();renderNumberPad();vibrate()});
+buildPad("blackJumperPad",n=>{state.current.blackJumper=state.current.blackJumper===n?null:n;persist();renderSetup();updateHeader();vibrate()});
+buildPad("oppJumperPad",n=>{state.current.oppJumper=state.current.oppJumper===n?null:n;persist();renderSetup();updateHeader();vibrate()});
 buildPad("blackOutPad",n=>{toggleIn(state.current.blackOut,n);persist();renderSetup();updateHeader();vibrate()});
 buildPad("oppOutPad",n=>{toggleIn(state.current.oppOut,n);persist();renderSetup();updateHeader();vibrate()});
 
@@ -559,8 +594,6 @@ document.getElementById("closeSettings").onclick=()=>{
   state.tournament.date=document.getElementById("tournamentDate").value||today();
   state.current.opponent=document.getElementById("opponent").value.trim();
   state.current.matchName=document.getElementById("matchName").value.trim();
-  state.current.blackJumper=document.getElementById("blackJumper").value?Number(document.getElementById("blackJumper").value):null;
-  state.current.oppJumper=document.getElementById("oppJumper").value?Number(document.getElementById("oppJumper").value):null;
   persist();updateHeader();closeSheet("settingsSheet");renderNumberPad()
 };
 ["tournamentName","tournamentDate","opponent","matchName"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{
@@ -568,11 +601,6 @@ document.getElementById("closeSettings").onclick=()=>{
   state.tournament.date=document.getElementById("tournamentDate").value||today();
   state.current.opponent=document.getElementById("opponent").value.trim();
   state.current.matchName=document.getElementById("matchName").value.trim();
-  persist();updateHeader()
-}));
-["blackJumper","oppJumper"].forEach(id=>document.getElementById(id).addEventListener("change",()=>{
-  state.current.blackJumper=document.getElementById("blackJumper").value?Number(document.getElementById("blackJumper").value):null;
-  state.current.oppJumper=document.getElementById("oppJumper").value?Number(document.getElementById("oppJumper").value):null;
   persist();updateHeader()
 }));
 document.getElementById("clearSetup").onclick=()=>{state.current.roster=[];state.current.blackJumper=null;state.current.oppJumper=null;state.current.blackOut=[];state.current.oppOut=[];persist();renderSetup();renderNumberPad();updateHeader()};
