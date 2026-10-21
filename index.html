@@ -262,7 +262,7 @@ const meta={
   black_caught:{inputs:2,label:"相手 キャッチ成功",firstTeam:"BLACK",secondTeam:"相手",firstPrompt:"アタックした BLACK の背番号",secondPrompt:"キャッチした 相手 の背番号",text:(a,b)=>`BLACK ${a} → 相手 ${b}（キャッチ成功）`},
   opp_caught:{inputs:2,label:"BLACK キャッチ成功",firstTeam:"相手",secondTeam:"BLACK",firstPrompt:"アタックした 相手 の背番号",secondPrompt:"キャッチした BLACK の背番号",text:(a,b)=>`相手 ${a} → BLACK ${b}（キャッチ成功）`},
   assist:{inputs:2,label:"BLACK アシスト",firstTeam:"BLACK",secondTeam:"BLACK",firstPrompt:"アシストした BLACK の背番号",secondPrompt:"アタック成功した BLACK の背番号",text:(a,b)=>`BLACK ${a}（アシスト）→ ${b}（アタック成功）`},
-  cut_success:{inputs:1,label:"BLACK カット成功",firstTeam:"BLACK",firstPrompt:"カット成功した BLACK の背番号",text:(a)=>`BLACK ${a}（カット成功）`},
+  cut_success:{inputs:2,label:"BLACK カット成功",firstTeam:"相手",secondTeam:"BLACK",firstPrompt:"ボールを投げた 相手 の背番号",secondPrompt:"カット成功した BLACK の背番号",text:(a,b)=>`相手 ${a} → BLACK ${b}（カット成功）`},
   jump_win:{inputs:0,label:"ジャンプボール勝ち",text:(a)=>a?`ジャンプボール勝ち（BLACK ${a}）`:"ジャンプボール勝ち"}
 };
 
@@ -348,24 +348,12 @@ function updateStage(){
   const big=document.getElementById("stageBig"),small=document.getElementById("stageSmall");
   if(!currentEvent){big.textContent="プレーを選んでね";small.textContent="必要な背番号をタップすると自動記録";return}
   const m=meta[currentEvent];
-  if(m.inputs===1){
-    big.textContent=m.firstPrompt;small.textContent="背番号を1回タップすると自動記録";return
-  }
   if(step===0){big.textContent=m.firstPrompt;small.textContent="① 1人目をタップ"}
   else{big.textContent=m.secondPrompt;small.textContent=`① ${firstNum}番を選択済み → ② 2人目をタップ`}
 }
 function numberTap(n){
   if(!currentEvent){toast("先にプレーを選んでね");return}
   const m=meta[currentEvent];
-
-  // カット成功は背番号1タップで即記録
-  if(m.inputs===1){
-    const x={event:currentEvent,a:n,b:null,time:new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",second:"2-digit"})};
-    state.current.logs.push(x);persist();
-    const stage=document.getElementById("stageBox");stage.classList.remove("flash");void stage.offsetWidth;stage.classList.add("flash");
-    toast("カット成功を記録！");vibrate();renderLatest();updateHeader();
-    return;
-  }
 
   if(step===0){firstNum=n;step=1;updateStage();renderNumberPad();vibrate();return}
   const x={event:currentEvent,a:firstNum,b:n,time:new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",second:"2-digit"})};
@@ -420,7 +408,7 @@ function matchSummaryHtml(m){
     <div><strong>キャッチ成功：</strong>${counts(m.logs,"opp_caught","b")}</div>
     <div><strong>相手にキャッチされたアタック：</strong>${counts(m.logs,"black_caught","a")}</div>
     <div><strong>アシスト：</strong>${counts(m.logs,"assist","a")}</div>
-    <div><strong>カット成功：</strong>${counts(m.logs,"cut_success","a")}</div>
+    <div><strong>カット成功：</strong>${counts(m.logs,"cut_success","b")}</div>
     <div><strong>ジャンプボール勝ち：</strong>${countEvent(m.logs,"jump_win")}回</div>`
 }
 function saveCurrentMatch(){
@@ -512,7 +500,7 @@ function playerAggregate(){
       if(x.event==="black_attack")ensure(x.a).attackSuccess++;
       if(x.event==="opp_caught")ensure(x.b).catchSuccess++;
       if(x.event==="assist")ensure(x.a).assistSuccess++;
-      if(x.event==="cut_success")ensure(x.a).cutSuccess++;
+      if(x.event==="cut_success")ensure(x.b).cutSuccess++;
     })
   });
   return Object.entries(agg).sort((a,b)=>Number(a[0])-Number(b[0]))
@@ -532,7 +520,7 @@ function matchShareText(m,index=null){
     const a=m.logs.filter(x=>x.event==="black_attack"&&x.a===n).length;
     const c=m.logs.filter(x=>x.event==="opp_caught"&&x.b===n).length;
     const s=m.logs.filter(x=>x.event==="assist"&&x.a===n).length;
-    const cut=m.logs.filter(x=>x.event==="cut_success"&&x.a===n).length;
+    const cut=m.logs.filter(x=>x.event==="cut_success"&&x.b===n).length;
     const h=m.logs.filter(x=>x.event==="opp_attack"&&x.b===n).length;
     if(a||c||s||cut||h)t+=`${n}番：AT${a} / C${c} / AS${s} / カット${cut} / アウト${h}\n`
   });
